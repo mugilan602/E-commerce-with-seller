@@ -14,6 +14,9 @@ app.use("/api/product",productRoutes)
 app.use("/api/user",userRoutes)
 app.use("/api/seller",sellerRoutes)
 
+app.get("/",(req,res)=>{
+  res.send("HI working")
+})
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
