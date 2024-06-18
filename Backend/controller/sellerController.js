@@ -1,5 +1,6 @@
 const Seller = require('../model/Seller');
 const Product = require('../model/products');
+const User=require("../model/users")
 const jwt = require('jsonwebtoken')
 const createToken = (_id) => {
     return jwt.sign({ _id }, process.env.SECRET, { expiresIn: "2d" });
@@ -30,6 +31,33 @@ const signup = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 }
+
+const getRequest =  async (req, res) => {
+    try {
+        // Ensure user is authenticated and a seller
+        const seller = await Seller.findById(req.user._id);
+        if (!seller) {
+            return res.status(401).json({ error: 'Unauthorized: Seller not found' });
+        }
+
+        // Fetch all requests associated with the seller
+        const requests = await Seller.findById(req.user._id)
+            .populate({
+                path: 'requests',
+                populate: [
+                    { path: 'userId', select: 'email' }, // Populate user email
+                    { path: 'productId', select: 'name image_url price' } // Populate product details
+                ]
+            })
+            .select('requests'); // Select only the requests array
+
+        res.status(200).json(requests.requests); // Return only the requests array
+    } catch (error) {
+        console.error("Error fetching requests:", error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
 
 const getProducts = async (req, res) => {
     try {
@@ -127,4 +155,4 @@ const deleteProducts = async (req, res) => {
     }
 };
 
-module.exports = { createProducts, updateProducts, deleteProducts, login, signup,getProducts };
+module.exports = { createProducts, updateProducts, deleteProducts, login, signup,getProducts ,getRequest};

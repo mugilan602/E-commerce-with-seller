@@ -19,8 +19,20 @@ const sellerSchema = new Schema({
     }],
     requests: [
         {
-            type: String,
-            required: true
+            userId: {
+                type: mongoose.Types.ObjectId,
+                ref: 'User',
+                required: true
+            },
+            productId: {
+                type: mongoose.Types.ObjectId,
+                ref: 'Product',
+                required: true
+            },
+            requestDate: {
+                type: Date,
+                default: Date.now
+            }
         }
     ],
     role: {

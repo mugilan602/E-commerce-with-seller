@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middleware/requireSellerAuth');
-const { createProducts, updateProducts, deleteProducts,login,signup,getProducts } = require('../controller/sellerController');
+const { createProducts, updateProducts, deleteProducts,login,signup,getProducts,getRequest } = require('../controller/sellerController');
 
 
 //login
@@ -18,6 +18,8 @@ router.post('/create', createProducts);
 router.get("/getProducts",getProducts)
 // Update an existing product
 router.put('/:id',  updateProducts);
+//get requests
+router.get("/getRequest",getRequest)
 
 // Delete a product
 router.delete('/:id', deleteProducts);

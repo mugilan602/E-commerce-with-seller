@@ -1,4 +1,5 @@
 const Product = require("../model/products");
+const Seller=require("../model/Seller")
 const Cart=require("../model/Cart")
 const mongoose=require("mongoose")
 const getProducts = async (req, res) => {
@@ -16,7 +17,41 @@ const getProducts = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+const buy = async (req, res) => {
+    const userId = req.user._id; // Assuming user ID is available in req.user
+    const { productId } = req.body; // Assuming productId is sent in the request body
 
+    console.log("userId:", userId);
+    console.log("productId:", productId);
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ error: "Invalid productId format" });
+    }
+
+    try {
+        // Find the product by productId
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ error: "Product not found" });
+        }
+
+        // Add the product request to the Seller's list of requests
+        const seller = await Seller.findByIdAndUpdate(
+            product.sellerId,
+            { $push: { requests: { userId, productId } } },
+            { new: true }
+        );
+
+        if (!seller) {
+            return res.status(404).json({ error: "Seller not found" });
+        }
+
+        res.status(200).json({ message: "Product request added successfully" });
+    } catch (error) {
+        console.error("Error requesting product:", error);
+        res.status(400).json({ error: error.message });
+    }
+};
 const addToCart = async (req, res) => {
     const userId = req.user._id; // Assuming user ID is available in req.user
     const { productId } = req.body; // Assuming productId is sent in the request body
@@ -58,6 +93,7 @@ const addToCart = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+
 const updateCart = async (req, res) => {
     const userId = req.user._id; // Assuming user ID is available in req.user
     const { productId, newQuantity } = req.body; // Assuming productId and newQuantity are sent in the request body
@@ -89,6 +125,7 @@ const updateCart = async (req, res) => {
       res.status(400).json({ error: error.message });
     }
   };
+
 const getCart = async (req, res) => {
     const userId = req.user._id; // Assuming user ID is available in req.user
 
@@ -145,4 +182,4 @@ const deleteProducts = async (req, res) => {
     }
 };
 
-module.exports = { getProducts, createProducts, updateProducts, deleteProducts,getLatestProducts,addToCart,getCart,updateCart };
+module.exports = { getProducts, createProducts, updateProducts, deleteProducts,getLatestProducts,addToCart,getCart,updateCart,buy };
