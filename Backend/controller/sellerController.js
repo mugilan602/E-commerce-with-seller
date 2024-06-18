@@ -1,6 +1,7 @@
 const Seller = require('../model/Seller');
 const Product = require('../model/products');
 const User=require("../model/users")
+const mongoose=require("mongoose")
 const jwt = require('jsonwebtoken')
 const createToken = (_id) => {
     return jwt.sign({ _id }, process.env.SECRET, { expiresIn: "2d" });
@@ -31,8 +32,13 @@ const signup = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 }
+const getCustomers = async (req, res) => {
+    const { productId } = req.params;
 
-const getRequest =  async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ error: "Invalid productId format" });
+    }
+
     try {
         // Ensure user is authenticated and a seller
         const seller = await Seller.findById(req.user._id);
@@ -40,23 +46,33 @@ const getRequest =  async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized: Seller not found' });
         }
 
-        // Fetch all requests associated with the seller
-        const requests = await Seller.findById(req.user._id)
+        // Find the seller and populate products array to get buyerIds
+        const sellerWithProducts = await Seller.findById(req.user._id)
             .populate({
-                path: 'requests',
-                populate: [
-                    { path: 'userId', select: 'email' }, // Populate user email
-                    { path: 'productId', select: 'name image_url price' } // Populate product details
-                ]
+                path: 'products',
+                match: { _id: productId },
+                populate: { path: 'buyerIds', select: 'email' }
             })
-            .select('requests'); // Select only the requests array
+            .select('products');
 
-        res.status(200).json(requests.requests); // Return only the requests array
+        if (!sellerWithProducts) {
+            return res.status(404).json({ error: 'Seller or product not found' });
+        }
+
+        // Extract the product with the specific productId
+        const product = sellerWithProducts.products.find(p => p.productId && p.productId._id.toString() === productId);
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+
+        res.status(200).json(product.buyerIds); // Return the buyerIds for the specific product
     } catch (error) {
-        console.error("Error fetching requests:", error);
+        console.error("Error fetching customers:", error);
         res.status(400).json({ error: error.message });
     }
 };
+
+
 
 
 const getProducts = async (req, res) => {
@@ -94,8 +110,8 @@ const createProducts = async (req, res) => {
         const product = new Product({ name, price, image_url, category, sellerId: seller._id });
         await product.save();
 
-        // Update the seller's products array
-        seller.products.push(product._id);
+        // Update the seller's products array with the new structure
+        seller.products.push({ productId: product._id, buyerIds: [] });
         await seller.save();
 
         res.status(200).json(product);
@@ -155,4 +171,4 @@ const deleteProducts = async (req, res) => {
     }
 };
 
-module.exports = { createProducts, updateProducts, deleteProducts, login, signup,getProducts ,getRequest};
+module.exports = { createProducts, updateProducts, deleteProducts, login, signup,getProducts ,getCustomers};

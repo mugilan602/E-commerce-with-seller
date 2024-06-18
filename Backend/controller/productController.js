@@ -35,10 +35,10 @@ const buy = async (req, res) => {
             return res.status(404).json({ error: "Product not found" });
         }
 
-        // Add the product request to the Seller's list of requests
-        const seller = await Seller.findByIdAndUpdate(
-            product.sellerId,
-            { $push: { requests: { userId, productId } } },
+        // Find the seller and update the buyerIds array for the specified product
+        const seller = await Seller.findOneAndUpdate(
+            { _id: product.sellerId, 'products.productId': productId },
+            { $addToSet: { 'products.$.buyerIds': userId } },
             { new: true }
         );
 
@@ -46,9 +46,9 @@ const buy = async (req, res) => {
             return res.status(404).json({ error: "Seller not found" });
         }
 
-        res.status(200).json({ message: "Product request added successfully" });
+        res.status(200).json({ message: "Product bought successfully" });
     } catch (error) {
-        console.error("Error requesting product:", error);
+        console.error("Error buying product:", error);
         res.status(400).json({ error: error.message });
     }
 };
